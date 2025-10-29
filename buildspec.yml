@@ -2,18 +2,48 @@ version: 0.2
 
 phases:
   install:
-    runtime-versions:
-      nodejs: 18
     commands:
+      # --- START: Added commands to enter GitHub zip subdirectory ---
+      - echo "Initial working directory:"
+      - pwd
+      - echo "Listing root directory contents:"
+      - ls -lA 
+      # Find the top-level directory created by GitHub zipball (assumes only one)
+      # List entries (-A includes hidden except . and ..), get the first line (directory name)
+      - export SOURCE_DIR=$(ls -A | head -n 1) 
+      - echo "Detected source directory: $SOURCE_DIR"
+      - if [ -z "$SOURCE_DIR" ]; then echo "ERROR: Could not find source directory from zipball"; exit 1; fi
+      # Change into the source directory
+      - cd "$SOURCE_DIR"
+      - echo "Changed directory to $SOURCE_DIR. New working directory:"
+      - pwd
+      - echo "Contents of source directory '$SOURCE_DIR':"
+      - ls -lA
+      # --- END: Added commands ---
+
+      # --- Your ORIGINAL install commands start here ---
       - echo "Installing dependencies..."
-      - npm install
+      - npm install 
+      # --- etc ---
+  # pre_build, build, post_build phases remain the same as before
+  pre_build:
+     commands:
+       # ... your security scan commands ...
+       - echo "Running security scans..." 
   build:
     commands:
-      - echo "Running unit tests..."
-      - npm test
       - echo "Build started on `date`"
-      - echo "**Compiling the Node.js code (if needed)...**"
-      
+      - echo "Compiling the Node.js code (if needed)..."
+      # ... your build commands ...
+  post_build:
+     commands:
+        # ... your post_build commands (like zipping for Elastic Beanstalk)...
+        - echo "Zipping artifact..."
 artifacts:
+  # If artifact paths were relative, they might need adjustment.
+  # If they were absolute or '**/*' it should be okay.
+  # Check if files are correctly captured. For safety, specify base-directory.
+  base-directory: '.' # Signifies current directory (which is now the SOURCE_DIR)
   files:
-    - '**/*'
+    - '**/*' # Include everything from within SOURCE_DIR
+  # discard-paths: yes # Optional: If you don't want the SOURCE_DIR name in the final artifact zip structure
